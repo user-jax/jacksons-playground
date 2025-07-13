@@ -7,22 +7,35 @@ const ImageGenerator: React.FC = () => {
 
   const generateImage = async (prompt: string): Promise<string | null> => {
     try {
-      // For now, we'll use a placeholder API endpoint
-      // You'll need to set up your own backend API endpoint
-      const response = await fetch('/api/generate-image', {
+      // Call our Spring Boot backend API
+      const response = await fetch('http://localhost:8080/api/generate-image', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ prompt }),
+        body: JSON.stringify({
+          prompt: prompt,
+          num_images: 1,
+          enable_safety_checker: true,
+          output_format: 'jpeg',
+          safety_tolerance: '2',
+          aspect_ratio: '16:9'
+        }),
       });
 
       if (!response.ok) {
-        throw new Error('Failed to generate image');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to generate image');
       }
 
       const data = await response.json();
-      return data.imageUrl || null;
+      
+      // Extract the first image URL from the response
+      if (data.images && data.images.length > 0) {
+        return data.images[0].url;
+      }
+      
+      return null;
     } catch (error) {
       console.error('Image generation error:', error);
       // For demo purposes, return a placeholder image
@@ -56,8 +69,8 @@ const ImageGenerator: React.FC = () => {
         <div className="text-center mb-8">
           <h2 className="text-3xl font-bold text-gray-900 mb-4">AI Image Generator</h2>
           <p className="text-gray-600 mb-6">
-            Describe an image and watch AI bring it to life. This demo uses placeholder images, 
-            but you can integrate with services like Replicate, FAL.ai, or OpenAI's DALL-E.
+            Describe an image and watch AI bring it to life. This uses FAL.ai's flux-pro model 
+            through a custom Spring Boot backend API to generate high-quality images from text descriptions.
           </p>
         </div>
         
